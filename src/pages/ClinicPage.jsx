@@ -62,6 +62,7 @@ function CourtesyModal({ clinicId, onClose, onDone }) {
   );
 }
 
+// "Dentistas" = quem atende pacientes (inclui administradores que também atendem)
 const USAGE = [['dentists', 'Dentistas'], ['patients', 'Pacientes'], ['secretaries', 'Secretárias'], ['admins', 'Administradores'], ['appointments', 'Agendamentos'], ['appointmentsLast30Days', 'Agendados (30 dias)']];
 
 function Detail({ label, children }) {

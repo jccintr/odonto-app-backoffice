@@ -20,19 +20,19 @@ function NewClinicModal({ onClose, onCreated }) {
     setBusy(true); setError(null);
     try {
       const created = await Platform.createClinic({ name: form.name.trim(), admin: { name: form.adminName.trim(), email: form.email.trim(), password: form.password } });
-      onCreated(created.clinic);
+      onCreated(created);
     } catch (err) { setError(errorMessage(err)); } finally { setBusy(false); }
   };
 
   return (
     <Modal open onClose={onClose} title="Nova clínica">
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
-        <p className="text-sm text-muted">Cria a clínica em teste grátis e o primeiro administrador, que recebe o e-mail de confirmação. (Clínicas também se cadastram sozinhas pelo site.)</p>
+        <p className="text-sm text-muted">Cria a clínica em teste grátis e o primeiro administrador, que recebe o e-mail de confirmação. Se o e-mail já tiver conta no OdontoApp (por exemplo, um dentista de outra clínica), ele recebe um convite e entra com a senha que já usa. (Clínicas também se cadastram sozinhas pelo site.)</p>
         {error && <Alert tone="danger">{error}</Alert>}
         <Field label="Nome da clínica" required>{({ id }) => <Input id={id} value={form.name} onChange={set('name')} />}</Field>
         <Field label="Nome do administrador" required>{({ id }) => <Input id={id} value={form.adminName} onChange={set('adminName')} />}</Field>
         <Field label="E-mail do administrador" required>{({ id }) => <Input id={id} type="email" value={form.email} onChange={set('email')} />}</Field>
-        <Field label="Senha inicial" required hint="No mínimo 8 caracteres.">{({ id }) => <PasswordInput id={id} autoComplete="new-password" value={form.password} onChange={set('password')} />}</Field>
+        <Field label="Senha inicial" required hint="No mínimo 8 caracteres. Ignorada se o e-mail já tiver conta.">{({ id }) => <PasswordInput id={id} autoComplete="new-password" value={form.password} onChange={set('password')} />}</Field>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button type="submit" loading={busy} disabled={form.name.trim().length < 2 || form.adminName.trim().length < 2 || !form.email || form.password.length < 8}>Criar clínica</Button>
@@ -88,7 +88,10 @@ export default function ClinicsPage() {
           </>
         )}
       </Card>
-      {creating && <NewClinicModal onClose={() => setCreating(false)} onCreated={(clinic) => { setCreating(false); res.reload(); ui.success(`Clínica ${clinic.name} criada.`); }} />}
+      {creating && <NewClinicModal onClose={() => setCreating(false)} onCreated={({ clinic, admin }) => {
+        setCreating(false); res.reload();
+        ui.success(admin.invitePending ? `Clínica ${clinic.name} criada. ${admin.email} já tinha conta: enviamos um convite para ele aceitar.` : `Clínica ${clinic.name} criada.`);
+      }} />}
     </>
   );
 }

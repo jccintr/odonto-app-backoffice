@@ -71,10 +71,10 @@ describe('clínicas', () => {
     expect(create).toBeDisabled();
     await u.type(within(dialog).getByLabelText(/Nome da clínica/), 'Clínica do Backoffice');
     await u.type(within(dialog).getByLabelText(/Nome do administrador/), 'Dr. Back');
-    await u.type(within(dialog).getByLabelText(/E-mail do administrador/), demo().admin.email); // já existe: erro
+    await u.type(within(dialog).getByLabelText(/E-mail do administrador/), 'email-invalido'); // a API recusa: erro no formulário
     await u.type(within(dialog).getByLabelText(/Senha inicial/), 'senha-do-back-123');
     await u.click(create);
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/já cadastrado/i);
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/inválid/i);
 
     await u.clear(within(dialog).getByLabelText(/E-mail do administrador/));
     await u.type(within(dialog).getByLabelText(/E-mail do administrador/), 'back@clinica-backoffice.test');
@@ -85,6 +85,21 @@ describe('clínicas', () => {
     expect(await screen.findByRole('heading', { name: 'Clínica do Backoffice' })).toBeInTheDocument();
     expect(screen.getByText('Ainda não escolheu')).toBeInTheDocument();
     expect(screen.getByText(/A clínica ainda não escolheu um plano/)).toBeInTheDocument();
+  });
+
+  it('administrador com e-mail que já tem conta (de outra clínica) recebe um convite', async () => {
+    const u = user();
+    await loginPlatform();
+    renderApp('/clinicas');
+    await u.click(await screen.findByRole('button', { name: /Nova clínica/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Nova clínica' });
+    await u.type(within(dialog).getByLabelText(/Nome da clínica/), 'Clínica Segunda Unidade');
+    await u.type(within(dialog).getByLabelText(/Nome do administrador/), 'Qualquer Nome');
+    await u.type(within(dialog).getByLabelText(/E-mail do administrador/), demo().admin.email);
+    await u.type(within(dialog).getByLabelText(/Senha inicial/), 'senha-ignorada-123');
+    await u.click(within(dialog).getByRole('button', { name: 'Criar clínica' }));
+    expect(await screen.findByText(/já tinha conta: enviamos um convite/)).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Clínica Segunda Unidade' })).toBeInTheDocument();
   });
 
   it('estende o teste, dá e tira cortesia, bloqueia e reativa', async () => {
@@ -205,8 +220,9 @@ describe('planos', () => {
     await u.clear(within(dialog).getByLabelText(/Máximo de dentistas/)); // vazio = ilimitado
     await u.click(within(dialog).getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    // a lista recarrega depois de salvar: espera o valor novo aparecer
     const updated = screen.getByText('Essencial').closest('tr');
-    expect(within(updated).getByText(/R\$\s*89,90/)).toBeInTheDocument();
+    expect(await within(updated).findByText(/R\$\s*89,90/)).toBeInTheDocument();
     expect(within(updated).getByText('Ilimitados')).toBeInTheDocument();
 
     // desativar tira o plano da lista de escolha das clínicas
